@@ -1,9 +1,3 @@
-train_folder = "datasets/train-articles" # check that the path to the datasets folder is correct,
-dev_folder = "datasets/dev-articles"     # if not adjust these variables accordingly
-train_labels_folder = "datasets/train-labels-SLC"
-task_SLC_output_file = "SLC_output.txt"
-
-
 from sklearn.linear_model import LogisticRegression
 import glob
 import os.path
@@ -14,7 +8,6 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2,f_regression,f_classif
 import nltk
 import pandas as pd
-from sklearn import preprocessing
 import json
 from textstat.textstat import textstat
 from nltk.tokenize import sent_tokenize
@@ -620,14 +613,34 @@ def congratulation(X):
     return feature
 
 ### MAIN ###
-def val():
-    with open('./models/slc_insult.p', 'rb') as f:
-        X, Y, vocab_size, dimension, max_tweet_length, lb, tokenizer_tweets, embeddings_index,features, X_val, features_val, dev_article_id_list, dev_sentence_id_list = pickle.load(
-            f)
+def val(type):
+    train_folder = "datasets/train-articles"
+    dev_folder = "datasets/dev-articles"
+    test_folder = "datasets/test-articles"
+    train_labels_folder = "datasets/train-labels-SLC"
+    task_SLC_output_file = "SLC_"+type+"_output.txt"
+    try:
+        with open('./models/emotion.p', 'rb') as f:
+            features_train, features_dev, features_test= pickle.load(f)
+    except:
+        import emotion_features
+        features_train, features_dev, features_test = emotion_features.emotion_features()
     train_article_ids, train_sentence_ids, sentence_list = read_articles_from_file_list(train_folder)
     reference_articles_id, reference_sentence_id_list, gold_labels = read_predictions_from_file_list(train_labels_folder, "*.task-SLC.labels")
-    dev_article_id_list, dev_sentence_id_list, dev_sentence_list = read_articles_from_file_list(dev_folder)
-    print("Loaded %d sentences from %d articles" % (len(sentence_list), len(set(train_article_ids))))
+    dev_sentence_list = []
+    dev_article_id_list = []
+    dev_sentence_id_list=[]
+    features_val = []
+    if type=='test':
+        dev_article_id_list, dev_sentence_id_list, dev_sentence_list = read_articles_from_file_list(test_folder)
+        features_val = features_test
+    elif type=='dev':
+        dev_article_id_list, dev_sentence_id_list, dev_sentence_list = read_articles_from_file_list(dev_folder)
+        features_val = features_dev
+    print("Loaded %d sentences from %d %s_articles" % (len(dev_sentence_list), len(set(dev_article_id_list)),type))
+    # with open('./models/raw_data.p','wb') as file:
+    #     pickle.dump((sentence_list,dev_sentence_list,test_sentence_list,gold_labels),file)
+    # pd.DataFrame(dev_sentence_list).to_csv('./datasets/test.csv',index=False)
 
     # numberlist
     numberlisttrain = [numberlist(text) for text in sentence_list]
@@ -648,7 +661,7 @@ def val():
     bert_train = []
     bert_test = []
     x_train2 = np.load('./datasets/x_train_bert70.npy')
-    x_test2 = np.load('./datasets/x_test_bert70.npy')
+    x_test2 = np.load('./datasets/x_'+type+'_bert70.npy')
     i = 0
     for ss in sentence_list:
         if ss == '':
@@ -755,8 +768,8 @@ def val():
 
     # liwc
     liwctrain = pd.read_csv('./datasets/liwctrain.csv')[['WC', 'Analytic', 'Clout', 'Authentic', 'Tone', 'WPS', 'Sixltr', 'Dic', 'function', 'pronoun', 'ppron', 'i', 'we', 'you', 'shehe', 'they', 'ipron', 'article', 'prep', 'auxverb', 'adverb', 'conj', 'negate', 'verb', 'adj', 'compare', 'interrog', 'number', 'quant', 'affect', 'posemo', 'negemo', 'anx', 'anger', 'sad', 'social', 'family', 'friend', 'female', 'male', 'cogproc', 'insight', 'cause', 'discrep', 'tentat', 'certain', 'differ', 'percept', 'see', 'hear', 'feel', 'bio', 'body', 'health', 'sexual', 'ingest', 'drives', 'affiliation', 'achieve', 'power', 'reward', 'risk', 'focuspast', 'focuspresent', 'focusfuture', 'relativ', 'motion', 'space', 'time', 'work', 'leisure', 'home', 'money', 'relig', 'death', 'informal', 'swear', 'netspeak', 'assent', 'nonflu', 'filler', 'AllPunc', 'Period', 'Comma', 'Colon', 'SemiC', 'QMark', 'Exclam', 'Dash', 'Quote', 'Apostro', 'Parenth', 'OtherP']]
-    liwctest = pd.read_csv('./datasets/liwctest.csv')[['WC', 'Analytic', 'Clout', 'Authentic', 'Tone', 'WPS', 'Sixltr', 'Dic', 'function', 'pronoun', 'ppron', 'i', 'we', 'you', 'shehe', 'they', 'ipron', 'article', 'prep', 'auxverb', 'adverb', 'conj', 'negate', 'verb', 'adj', 'compare', 'interrog', 'number', 'quant', 'affect', 'posemo', 'negemo', 'anx', 'anger', 'sad', 'social', 'family', 'friend', 'female', 'male', 'cogproc', 'insight', 'cause', 'discrep', 'tentat', 'certain', 'differ', 'percept', 'see', 'hear', 'feel', 'bio', 'body', 'health', 'sexual', 'ingest', 'drives', 'affiliation', 'achieve', 'power', 'reward', 'risk', 'focuspast', 'focuspresent', 'focusfuture', 'relativ', 'motion', 'space', 'time', 'work', 'leisure', 'home', 'money', 'relig', 'death', 'informal', 'swear', 'netspeak', 'assent', 'nonflu', 'filler', 'AllPunc', 'Period', 'Comma', 'Colon', 'SemiC', 'QMark', 'Exclam', 'Dash', 'Quote', 'Apostro', 'Parenth', 'OtherP']]
-
+    liwctest = pd.read_csv('./datasets/liwc'+type+'.csv')[['WC', 'Analytic', 'Clout', 'Authentic', 'Tone', 'WPS', 'Sixltr', 'Dic', 'function', 'pronoun', 'ppron', 'i', 'we', 'you', 'shehe', 'they', 'ipron', 'article', 'prep', 'auxverb', 'adverb', 'conj', 'negate', 'verb', 'adj', 'compare', 'interrog', 'number', 'quant', 'affect', 'posemo', 'negemo', 'anx', 'anger', 'sad', 'social', 'family', 'friend', 'female', 'male', 'cogproc', 'insight', 'cause', 'discrep', 'tentat', 'certain', 'differ', 'percept', 'see', 'hear', 'feel', 'bio', 'body', 'health', 'sexual', 'ingest', 'drives', 'affiliation', 'achieve', 'power', 'reward', 'risk', 'focuspast', 'focuspresent', 'focusfuture', 'relativ', 'motion', 'space', 'time', 'work', 'leisure', 'home', 'money', 'relig', 'death', 'informal', 'swear', 'netspeak', 'assent', 'nonflu', 'filler', 'AllPunc', 'Period', 'Comma', 'Colon', 'SemiC', 'QMark', 'Exclam', 'Dash', 'Quote', 'Apostro', 'Parenth', 'OtherP']]
+    print(np.array(liwctest).shape)
     print("start to select features")
 
     train1 = np.concatenate([np.array(liwctrain),np.array(othertrain),bert_train,train_length,train_vec2.toarray()],axis=1)
@@ -776,7 +789,7 @@ def val():
     # model5 = SelectKBest(f_classif, k=2)
     # a5 = model5.fit_transform(enoughtrain, gold_labels)
     # a6 = model5.transform(enoughdev)
-    train = np.concatenate([train1,features,np.array(slogantrain),a1,a3,howdaretrain,hitertrain,shortlongtrain,numberlisttrain,takenoticetrain],axis=1)
+    train = np.concatenate([train1,features_train,np.array(slogantrain),a1,a3,howdaretrain,hitertrain,shortlongtrain,numberlisttrain,takenoticetrain],axis=1)
     dev = np.concatenate([dev1,features_val,np.array(slogandev),a2,a4,howdaredev,hiterdev,shortlongtest,numberlistdev,takenoticedev],axis=1)
 
     train = np.row_stack((train, np.array([[0]*(train.shape[1]-3)+[1,1,0]])))
@@ -784,7 +797,6 @@ def val():
     train = np.row_stack((train, np.array([[0] * (train.shape[1]-1) + [1]])))
     gold_labels.insert(-1, 'propaganda')
 
-    print(train.shape)
     model4 = SelectKBest(f_classif, k=635)
     train = model4.fit_transform(train, gold_labels)
     dev = model4.transform(dev)
@@ -848,7 +860,7 @@ def val():
     predictions = model.predict(dev)
 
     # predictions file with text
-    with open("./datasets/full_predictions.tsv", "w") as fout:
+    with open("./datasets/full_"+type+"_predictions.tsv", "w") as fout:
         for article_id, sentence_id, sentence,prediction in zip(dev_article_id_list, dev_sentence_id_list,dev_sentence_list, predictions):
             fout.write("%s\t%s\t%s\t%s\n" % (article_id, sentence_id,sentence,prediction))
 
@@ -860,4 +872,5 @@ def val():
 
 
 if __name__ == '__main__':
-    val()
+
+    val('test')

@@ -463,7 +463,7 @@ def clean(sentence_list):
 def build_missing_voc():
     # (propaganda-nonpropaganda)&dev_data
     with open('./models/raw_data.p', 'rb') as file:
-        sentence_list, dev_sentence_list, label = pickle.load(file)
+        sentence_list, dev_sentence_list, test_sentence_list, label = pickle.load(file)
     npp=[]
     p=[]
     b = [nltk.word_tokenize(text.lower()) for text in dev_sentence_list]
